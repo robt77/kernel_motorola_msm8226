@@ -30,8 +30,8 @@ extern int g_kcal_b;
 extern struct kcal_data kcal_value;
 #endif
 
+extern int down_kcal, up_kcal;
 
-extern int lut_trigger, down_kcal, up_kcal;
 extern void sweep2wake_pwrtrigger(void);
 
 
