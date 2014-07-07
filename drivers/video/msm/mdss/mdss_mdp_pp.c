@@ -21,6 +21,18 @@
 #include <linux/delay.h>
 #include <mach/msm_bus.h>
 #include <mach/msm_bus_board.h>
+#include <linux/input/sweep2wake.h>
+#ifdef CONFIG_LCD_KCAL
+#include <mach/kcal.h>
+extern int g_kcal_r;
+extern int g_kcal_g;
+extern int g_kcal_b;
+extern struct kcal_data kcal_value;
+#endif
+
+
+extern int lut_trigger, down_kcal, up_kcal;
+
 
 struct mdp_csc_cfg mdp_csc_convert[MDSS_MDP_MAX_CSC] = {
 	[MDSS_MDP_CSC_RGB2RGB] = {
@@ -1726,6 +1738,133 @@ int mdss_mdp_pp_resume(struct mdss_mdp_ctl *ctl, u32 dspp_num)
 	return 0;
 }
 
+<<<<<<< HEAD
+=======
+void mdss_mdp_pp_kcal_update(struct kcal_lut_data *lut_data)
+{
+	u32 copyback = 0;
+	struct mdp_pcc_cfg_data pcc_config;
+
+	memset(&pcc_config, 0, sizeof(struct mdp_pcc_cfg_data));
+
+	pcc_config.block = MDP_LOGICAL_BLOCK_DISP_0;
+	pcc_config.ops = lut_data->enable ? MDP_PP_OPS_WRITE | MDP_PP_OPS_ENABLE :
+		MDP_PP_OPS_WRITE | MDP_PP_OPS_DISABLE;
+	pcc_config.r.r = lut_data->red * PCC_ADJ;
+	pcc_config.g.g = lut_data->green * PCC_ADJ;
+	pcc_config.b.b = lut_data->blue * PCC_ADJ;
+
+	mdss_mdp_pcc_config(&pcc_config, &copyback);
+}
+
+void mdss_mdp_pp_kcal_pa(struct kcal_lut_data *lut_data)
+{
+	u32 copyback = 0;
+	struct mdp_pa_cfg_data pa_config;
+	struct mdp_pa_v2_cfg_data pa_v2_config;
+	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
+
+	if (mdata->mdp_rev < MDSS_MDP_HW_REV_103) {
+		memset(&pa_config, 0, sizeof(struct mdp_pa_cfg_data));
+
+		pa_config.block = MDP_LOGICAL_BLOCK_DISP_0;
+		pa_config.pa_data.flags = MDP_PP_OPS_WRITE | MDP_PP_OPS_ENABLE;
+		pa_config.pa_data.hue_adj = lut_data->hue;
+		pa_config.pa_data.sat_adj = lut_data->sat;
+		pa_config.pa_data.val_adj = lut_data->val;
+		pa_config.pa_data.cont_adj = lut_data->cont;
+
+		mdss_mdp_pa_config(&pa_config, &copyback);
+	} else {
+		memset(&pa_v2_config, 0, sizeof(struct mdp_pa_v2_cfg_data));
+
+		pa_v2_config.block = MDP_LOGICAL_BLOCK_DISP_0;
+		pa_v2_config.pa_v2_data.flags = MDP_PP_OPS_WRITE | MDP_PP_OPS_ENABLE;
+		pa_v2_config.pa_v2_data.flags |= MDP_PP_PA_HUE_ENABLE;
+		pa_v2_config.pa_v2_data.flags |= MDP_PP_PA_HUE_MASK;
+		pa_v2_config.pa_v2_data.flags |= MDP_PP_PA_SAT_ENABLE;
+		pa_v2_config.pa_v2_data.flags |= MDP_PP_PA_SAT_MASK;
+		pa_v2_config.pa_v2_data.flags |= MDP_PP_PA_VAL_ENABLE;
+		pa_v2_config.pa_v2_data.flags |= MDP_PP_PA_VAL_MASK;
+		pa_v2_config.pa_v2_data.flags |= MDP_PP_PA_CONT_ENABLE;
+		pa_v2_config.pa_v2_data.flags |= MDP_PP_PA_CONT_MASK;
+		pa_v2_config.pa_v2_data.global_hue_adj = lut_data->hue;
+		pa_v2_config.pa_v2_data.global_sat_adj = lut_data->sat;
+		pa_v2_config.pa_v2_data.global_val_adj = lut_data->val;
+		pa_v2_config.pa_v2_data.global_cont_adj = lut_data->cont;
+
+		mdss_mdp_pa_v2_config(&pa_v2_config, &copyback);
+	}
+}
+
+void mdss_mdp_pp_kcal_invert(struct kcal_lut_data *lut_data)
+{
+<<<<<<< HEAD
+	int i;
+	u32 disp_num = 0, copyback = 0, copy_from_kernel = 1;
+	struct msm_fb_data_type *igc_mfd;
+	struct mdp_igc_lut_data *igc_config;
+
+	igc_mfd = mdss_get_mfd_from_index(0);
+
+	igc_config = &mdss_pp_res->igc_disp_cfg[disp_num];
+	igc_config->c0_c1_data = &mdss_pp_res->igc_lut_c0c1[disp_num][0];
+	igc_config->c2_data = &mdss_pp_res->igc_lut_c2[disp_num][0];
+	igc_config->block = MDP_LOGICAL_BLOCK_DISP_0;
+	igc_config->len = IGC_LUT_ENTRIES;
+
+	if (igc_mfd && lut_data->invert) {
+		igc_config->ops = MDP_PP_OPS_WRITE | MDP_PP_OPS_ENABLE;
+		for (i = 0; i < IGC_LUT_ENTRIES; i++) {
+			igc_c0_c1[i] = (igc_Table_RGB[i] & 0xfff) |
+				((igc_Table_RGB[i] & 0xfff)) << 16;
+			igc_c2[i] = igc_Table_RGB[i];
+		}
+		igc_config->c0_c1_data = &igc_c0_c1[0];
+		igc_config->c2_data = &igc_c2[0];
+	} else if (igc_mfd && !lut_data->invert)
+		igc_config->ops = MDP_PP_OPS_WRITE | MDP_PP_OPS_DISABLE;
+	else
+		return;
+=======
+	int ret = 0;
+
+	if (lut_trigger == 1) {
+		g_kcal_r = g_kcal_r - down_kcal;
+		g_kcal_g = g_kcal_g - down_kcal;
+		g_kcal_b = g_kcal_b - down_kcal;
+		if (g_kcal_r < 0)
+			g_kcal_r = 0;
+		if (g_kcal_g < 0)
+			g_kcal_g = 0;
+		if (g_kcal_b < 0)
+			g_kcal_b = 0;
+	}
+
+	if (lut_trigger == 2) {
+		g_kcal_r = g_kcal_r + up_kcal;
+		g_kcal_g = g_kcal_g + up_kcal;
+		g_kcal_b = g_kcal_b + up_kcal;
+		if (g_kcal_r > 255)
+			g_kcal_r = 255;
+		if (g_kcal_g > 255)
+			g_kcal_g = 255;
+		if (g_kcal_b > 255)
+			g_kcal_b = 255;
+	}
+
+	pr_info("update_preset_lcdc_lut red=[%d], green=[%d], blue=[%d]\n", g_kcal_r, g_kcal_g, g_kcal_b);
+
+	mdss_mdp_pp_argc_kcal(g_kcal_r,g_kcal_g,g_kcal_b);
+
+	if (ret)
+		pr_err("%s: failed to set lut! %d\n", __func__, ret);
+>>>>>>> e48b8c5... sweep2dim: reduce/raise kcal via sweep2sleep gestures
+
+	mdss_mdp_igc_lut_config(igc_config, &copyback, copy_from_kernel);
+}
+
+>>>>>>> 694fdf9... sweep2dim: reduce/raise kcal via sweep2sleep gestures
 int mdss_mdp_pp_init(struct device *dev)
 {
 	int i, ret = 0;
