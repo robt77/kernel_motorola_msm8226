@@ -30,11 +30,6 @@ extern int g_kcal_b;
 extern struct kcal_data kcal_value;
 #endif
 
-extern int down_kcal, up_kcal;
-
-extern void sweep2wake_pwrtrigger(void);
-
-
 struct mdp_csc_cfg mdp_csc_convert[MDSS_MDP_MAX_CSC] = {
 	[MDSS_MDP_CSC_RGB2RGB] = {
 		0,
@@ -1796,6 +1791,7 @@ void mdss_mdp_pp_kcal_pa(struct kcal_lut_data *lut_data)
 	}
 }
 
+
 int update_preset_lcdc_lut_s2d(int lut_trigger)
 
 {
@@ -1881,6 +1877,8 @@ int update_preset_lcdc_lut_s2d(int lut_trigger)
 	return ret;
 }
 
+=======
+>>>>>>> 2bf9b20... s2d: rewrite kcal setting, allow s2d with s2w
 int update_preset_lcdc_lut(void)
 {
 	int ret = 0;
