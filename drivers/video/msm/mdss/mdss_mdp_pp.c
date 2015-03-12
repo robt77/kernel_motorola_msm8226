@@ -1732,23 +1732,7 @@ int mdss_mdp_pp_resume(struct mdss_mdp_ctl *ctl, u32 dspp_num)
 
 	mdss_pp_res->pp_disp_flags[disp_num] |= flags;
 	return 0;
-}
 
-void mdss_mdp_pp_kcal_update(struct kcal_lut_data *lut_data)
-{
-	u32 copyback = 0;
-	struct mdp_pcc_cfg_data pcc_config;
-
-	memset(&pcc_config, 0, sizeof(struct mdp_pcc_cfg_data));
-
-	pcc_config.block = MDP_LOGICAL_BLOCK_DISP_0;
-	pcc_config.ops = lut_data->enable ? MDP_PP_OPS_WRITE | MDP_PP_OPS_ENABLE :
-		MDP_PP_OPS_WRITE | MDP_PP_OPS_DISABLE;
-	pcc_config.r.r = lut_data->red * PCC_ADJ;
-	pcc_config.g.g = lut_data->green * PCC_ADJ;
-	pcc_config.b.b = lut_data->blue * PCC_ADJ;
-
-	mdss_mdp_pcc_config(&pcc_config, &copyback);
 }
 
 void mdss_mdp_pp_kcal_pa(struct kcal_lut_data *lut_data)
@@ -1790,7 +1774,6 @@ void mdss_mdp_pp_kcal_pa(struct kcal_lut_data *lut_data)
 		mdss_mdp_pa_v2_config(&pa_v2_config, &copyback);
 	}
 }
-
 
 int update_preset_lcdc_lut_s2d(int lut_trigger)
 
@@ -1877,8 +1860,7 @@ int update_preset_lcdc_lut_s2d(int lut_trigger)
 	return ret;
 }
 
-=======
->>>>>>> 2bf9b20... s2d: rewrite kcal setting, allow s2d with s2w
+
 int update_preset_lcdc_lut(void)
 {
 	int ret = 0;
@@ -1889,7 +1871,6 @@ int update_preset_lcdc_lut(void)
 
 	if (ret)
 		pr_err("%s: failed to set lut! %d\n", __func__, ret);
->>>>>>> e48b8c5... sweep2dim: reduce/raise kcal via sweep2sleep gestures
 
 	mdss_mdp_igc_lut_config(igc_config, &copyback, copy_from_kernel);
 }
