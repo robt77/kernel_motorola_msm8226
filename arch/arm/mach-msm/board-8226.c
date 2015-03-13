@@ -112,8 +112,6 @@ static void __init msm8226_reserve(void)
 	msm_reserve();
 }
 
-<<<<<<< HEAD
-=======
 #ifdef CONFIG_LCD_KCAL
 extern int g_kcal_r;
 extern int g_kcal_g;
@@ -237,7 +235,6 @@ void __init add_lcd_kcal_devices(void)
 };
 #endif
 
->>>>>>> 2bf9b20... s2d: rewrite kcal setting, allow s2d with s2w
 /*
  * Used to satisfy dependencies for devices that need to be
  * run early or in a particular order. Most likely your device doesn't fall

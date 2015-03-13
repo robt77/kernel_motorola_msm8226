@@ -211,8 +211,7 @@ static void detect_sweep2wake(int sweep_coord, int sweep_height, bool st)
 					if (sweep_coord < DEFAULT_S2W_X_FINAL) {
 						if (exec_count) {
 							pr_info(LOGTAG"EXEC_COUNT\n");
-							if (s2d_enabled)
-								kcal_send_s2d(1);
+							if (s2d_enabled);
 							else
 								sweep2wake_pwrtrigger();
 							exec_count = false;
@@ -241,8 +240,7 @@ static void detect_sweep2wake(int sweep_coord, int sweep_height, bool st)
 					if (sweep_coord > S2W_X_B5) {
 						if (exec_count) {
 							pr_info(LOGTAG"EXEC_COUNT\n");
-							if (s2d_enabled)
-								kcal_send_s2d(2);
+							if (s2d_enabled);
 							else
 								sweep2wake_pwrtrigger();
 							exec_count = false;
