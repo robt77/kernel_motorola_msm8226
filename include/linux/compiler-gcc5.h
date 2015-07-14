@@ -11,11 +11,17 @@
    are unnecessary now for any paths leading to the usual suspects
    like BUG(), printk(), panic() etc. [but let's keep them for now for
    older compilers]
+<<<<<<< HEAD
 
    Early snapshots of gcc 4.3 don't support this and we can't detect this
    in the preprocessor, but we can live with this because they're unreleased.
    Maketime probing would be overkill here.
 
+=======
+   Early snapshots of gcc 4.3 don't support this and we can't detect this
+   in the preprocessor, but we can live with this because they're unreleased.
+   Maketime probing would be overkill here.
+>>>>>>> 4342639708e... final fixes for  5.1 tool chain compilation
    gcc also has a __attribute__((__hot__)) to move hot functions into
    a special section, but I don't see any sense in this right now in
    the kernel context */
