@@ -34,7 +34,7 @@
 #include <linux/of_gpio.h>
 #include <linux/module.h>
 #include <linux/slab.h>
-#include <linux/suspend.h>
+#include <linux/lcd_notify.h>
 #include <linux/uaccess.h>
 #include <linux/workqueue.h>
 #include <linux/akm8963.h>
@@ -81,7 +81,7 @@ struct akm8963_data {
 	int	irq;
 	int	rstn;
 
-	struct notifier_block pm_notifier;
+	struct notifier_block notif;
 };
 
 static struct akm8963_data *s_akm;
@@ -509,7 +509,7 @@ AKECS_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			__func__);
 		ret = AKECS_GetOpenStatus(akm);
 		if (ret < 0) {
-			dev_err(&akm->i2c->dev,
+			dev_dbg(&akm->i2c->dev,
 				"%s: Get Open returns error (%d).",
 				__func__, ret);
 		}
@@ -1309,57 +1309,51 @@ static irqreturn_t akm8963_irq(int irq, void *handle)
 	return IRQ_HANDLED;
 }
 
-static int akm8963_suspend(struct akm8963_data *akm)
+static void akm8963_suspend(void)
 {
-	dev_info(&akm->i2c->dev, "%s: Suspend\n", __func__);
+	dev_info(&s_akm->i2c->dev, "%s: Suspend\n", __func__);
 
-	disable_irq(akm->irq);
+	disable_irq(s_akm->irq);
 
-	mutex_lock(&akm->state_mutex);
-	akm->suspend_flag = 1;
-	akm->drdy_flag = 0;
-	akm->busy_flag = 0;
-	akm->active_flag = 0;
-	mutex_unlock(&akm->state_mutex);
+	mutex_lock(&s_akm->state_mutex);
+	s_akm->suspend_flag = 1;
+	s_akm->drdy_flag = 0;
+	s_akm->busy_flag = 0;
+	s_akm->active_flag = 0;
+	mutex_unlock(&s_akm->state_mutex);
 
-	wake_up(&akm->open_wq);
-
-	return 0;
+	wake_up(&s_akm->open_wq);
 }
 
-static int akm8963_resume(struct akm8963_data *akm)
+static void akm8963_resume(void)
 {
-	dev_info(&akm->i2c->dev, "%s: Resume\n", __func__);
+	dev_info(&s_akm->i2c->dev, "%s: Resume\n", __func__);
 
-	mutex_lock(&akm->state_mutex);
-	if (akm->enable_flag != 0)
-		akm->active_flag = 1;
-	akm->suspend_flag = 0;
-	mutex_unlock(&akm->state_mutex);
+	mutex_lock(&s_akm->state_mutex);
+	if (s_akm->enable_flag != 0)
+		s_akm->active_flag = 1;
+	s_akm->suspend_flag = 0;
+	mutex_unlock(&s_akm->state_mutex);
 
-	enable_irq(akm->irq);
+	enable_irq(s_akm->irq);
 
-	wake_up(&akm->open_wq);
-
-	return 0;
+	wake_up(&s_akm->open_wq);
 }
 
-static int akm8963_pm_event(struct notifier_block *this,
-	unsigned long event, void *ptr)
+static int state_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data)
 {
-	struct akm8963_data *akm = container_of(this,
-		struct akm8963_data, pm_notifier);
-
 	switch (event) {
-	case PM_SUSPEND_PREPARE:
-		akm8963_suspend(akm);
-		break;
-	case PM_POST_SUSPEND:
-		akm8963_resume(akm);
-		break;
+		case LCD_EVENT_ON_END:
+			akm8963_resume();
+			break;
+		case LCD_EVENT_OFF_END:
+			akm8963_suspend();
+			break;
+		default:
+			break;
 	}
-
-	return NOTIFY_DONE;
+	return NOTIFY_OK;
 }
 
 #ifdef CONFIG_OF
@@ -1543,10 +1537,10 @@ int akm8963_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto exit_sfs_fail;
 	}
 
-	s_akm->pm_notifier.notifier_call = akm8963_pm_event;
-	err = register_pm_notifier(&s_akm->pm_notifier);
+	s_akm->notif.notifier_call = state_notifier_callback;
+	err = lcd_register_client(&s_akm->notif);
 	if (err < 0) {
-		pr_err("%s:Register_pm_notifier failed: %d\n", __func__, err);
+		pr_err("%s:Register_lcd_notifier failed: %d\n", __func__, err);
 		goto exit_pm_fail;
 	}
 
@@ -1583,7 +1577,7 @@ static int akm8963_remove(struct i2c_client *client)
 		regulator_put(akm->vdd);
 	}
 
-	unregister_pm_notifier(&akm->pm_notifier);
+	lcd_unregister_client(&s_akm->notif);
 	remove_sysfs_interfaces(akm);
 	if (misc_deregister(&akm8963_dev) < 0)
 		dev_err(&client->dev, "%s: misc deregister failed.", __func__);
