@@ -38,9 +38,7 @@
 #include <linux/kthread.h>
 #include <linux/slab.h>
 #include <linux/kernel_stat.h>
-#ifdef CONFIG_POWERSUSPEND
-#include <linux/powersuspend.h>
-#endif
+#include <linux/lcd_notify.h>
 
 /******************** Tunable parameters: ********************/
 
@@ -161,7 +159,7 @@ static DEFINE_PER_CPU(struct smartmax_info_s, smartmax_info);
  */
 static DEFINE_MUTEX(dbs_mutex);
 static struct workqueue_struct *smartmax_wq;
-
+static struct notifier_block smnotif;
 static bool boost_task_alive = false;
 static struct task_struct *boost_task;
 static u64 boost_end_time = 0ULL;
@@ -1009,8 +1007,7 @@ static struct input_handler dbs_input_handler = {
 	.id_table = dbs_ids,
 };
 
-#ifdef CONFIG_POWERSUSPEND
-static void smartmax_power_suspend(struct power_suspend *handler)
+static void smartmax_suspend(void)
 {
 	pr_info("[smartmax]: Suspended");
 	ideal_freq = suspend_ideal_freq;
@@ -1018,7 +1015,7 @@ static void smartmax_power_suspend(struct power_suspend *handler)
 	smartmax_update_min_max_allcpus();
 }
 
-static void smartmax_power_resume(struct power_suspend *handler)
+static void smartmax_resume(void)
 {
 	pr_info("[smartmax]: Resumed");
 	ideal_freq = awake_ideal_freq;
@@ -1026,11 +1023,21 @@ static void smartmax_power_resume(struct power_suspend *handler)
 	smartmax_update_min_max_allcpus();
 }
 
-static struct power_suspend smartmax_power_suspend_handler = {
-	.suspend = smartmax_power_suspend,
-	.resume = smartmax_power_resume,
-};
-#endif
+static int lcd_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data)
+{
+	switch (event) {
+	case LCD_EVENT_ON_START:
+			smartmax_resume();
+			break;
+	case LCD_EVENT_OFF_END:
+			smartmax_suspend();
+			break;
+	default:
+			break;
+	}
+	return NOTIFY_OK;
+}
 
 static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 		unsigned int event) {
@@ -1089,9 +1096,9 @@ static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 				return rc;
 			}
 
-#ifdef CONFIG_POWERSUSPEND
-			register_power_suspend(&smartmax_power_suspend_handler);
-#endif
+			smnotif.notifier_call = lcd_notifier_callback;
+			if (lcd_register_client(&smnotif))
+				return rc;
 
 			rc = sysfs_create_group(cpufreq_global_kobject,
 					&smartmax_attr_group);
@@ -1144,9 +1151,7 @@ static int cpufreq_governor_smartmax(struct cpufreq_policy *new_policy,
 				kthread_stop(boost_task);
 			sysfs_remove_group(cpufreq_global_kobject, &smartmax_attr_group);
 			input_unregister_handler(&dbs_input_handler);
-#ifdef CONFIG_POWERSUSPEND
-			unregister_power_suspend(&smartmax_power_suspend_handler);
-#endif
+			lcd_unregister_client(&smnotif);
 		}
 
 		mutex_unlock(&dbs_mutex);
