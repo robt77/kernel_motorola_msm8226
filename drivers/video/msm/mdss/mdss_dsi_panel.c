@@ -807,7 +807,9 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 
 	mfd = pdata->mfd;
 
+#ifdef CONFIG_LCD_NOTIFY
 	lcd_notifier_call_chain(LCD_EVENT_ON_START);
+#endif
 
 	pr_info("%s+: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
@@ -899,7 +901,9 @@ end:
 	} else
 		dropbox_count = 0;
 
+#ifdef CONFIG_LCD_NOTIFY
 	lcd_notifier_call_chain(LCD_EVENT_ON_END);
+#endif
 
 	pr_info("%s-. Pwr_mode(0x0A) = 0x%x\n", __func__, pwr_mode);
 
@@ -934,7 +938,9 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 
 	mfd = pdata->mfd;
 
+#ifdef CONFIG_LCD_NOTIFY
 	lcd_notifier_call_chain(LCD_EVENT_OFF_START);
+#endif
 
 	pr_info("%s+: ctrl=%p ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
@@ -973,7 +979,9 @@ disable_regs:
 	if (pdata->panel_info.dynamic_cabc_enabled)
 		pdata->panel_info.cabc_mode = CABC_OFF_MODE;
 
+#ifdef CONFIG_LCD_NOTIFY
 	lcd_notifier_call_chain(LCD_EVENT_OFF_END);
+#endif
 
 	pr_info("%s-:\n", __func__);
 
